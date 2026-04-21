@@ -162,6 +162,7 @@ app.post('/api/auth/login', (req, res) => {
 
 // Settings config
 app.get('/api/settings', (req, res) => {
+    res.setHeader('Cache-Control', 'no-store, max-age=0');
     res.json(db.prepare('SELECT * FROM settings WHERE id = 1').get());
 });
 
@@ -206,6 +207,7 @@ app.post('/api/settings/toggle-notes', authenticateToken, (req, res) => {
 
 // Slides
 app.get('/api/slides', (req, res) => {
+    res.setHeader('Cache-Control', 'no-store, max-age=0');
     const slides = db.prepare('SELECT * FROM slides ORDER BY order_index').all();
     for (let s of slides) {
         s.instructions = db.prepare('SELECT * FROM instructions WHERE slide_id = ?').all(s.id);

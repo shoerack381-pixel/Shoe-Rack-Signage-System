@@ -76,15 +76,21 @@ function Dashboard() {
     master_point_bold: 0, master_point_italic: 0, master_point_underline: 0, master_point_align: 'right'
   });
 
-  useEffect(() => { 
-    loadSlides(); 
-    api.get('/settings').then(res => setSettings(res.data || {}));
-  }, []);
+  const [saveStatus, setSaveStatus] = useState(null);
+
+  const showStatus = (msg, type = 'success') => {
+    setSaveStatus({ msg, type });
+    setTimeout(() => setSaveStatus(null), 3000);
+  };
 
   const loadSlides = () => api.get('/slides').then(res => setSlides(res.data));
   const saveMasterStyle = async () => {
-    await api.put('/settings', settings);
-    alert('Master Style applied successfully!');
+    try {
+      await api.put('/settings', settings);
+      showStatus('Master styles updated successfully!');
+    } catch (err) {
+      showStatus('Error saving master styles', 'error');
+    }
   };
 
   const addSlide = async () => {
@@ -93,16 +99,44 @@ function Dashboard() {
   };
 
   const deleteSlide = async (id) => {
-    if(confirm('Delete slide?')) { await api.delete(`/slides/${id}`); loadSlides(); }
+    if(confirm('Delete slide block? This will remove all points inside it.')) { 
+      await api.delete(`/slides/${id}`); 
+      loadSlides(); 
+      showStatus('Slide block deleted');
+    }
   };
 
   const addPoint = async (slideId) => {
-    await api.post('/instructions', { slide_id: slideId, text: 'New Point Text', icon_path: '', icon_position: 'left' });
+    await api.post('/instructions', { slide_id: slideId, text: 'نیو پوائنٹ تحریر کریں', icon_path: '', icon_position: 'left' });
     loadSlides();
+    showStatus('New point added');
+  };
+
+  const handleLocalText = (sId, iId, text) => {
+    setSlides(slides => slides.map(s => s.id === sId ? {
+      ...s,
+      instructions: s.instructions.map(i => i.id === iId ? {...i, text} : i)
+    } : s));
+  };
+
+  const savePoint = async (iId) => {
+    let pointToUpdate = null;
+    for(let s of slides) {
+        let found = s.instructions.find(i => i.id === iId);
+        if(found) pointToUpdate = found;
+    }
+    if(!pointToUpdate) return;
+
+    try {
+      await api.put(`/instructions/${iId}`, pointToUpdate);
+      showStatus('Point saved successfully!');
+      loadSlides();
+    } catch (err) {
+      showStatus('Failed to save point', 'error');
+    }
   };
 
   const updatePoint = async (pointId, updates) => {
-    // Merge with existing
     let pointToUpdate = null;
     for(let s of slides) {
         let found = s.instructions.find(i => i.id === pointId);
@@ -127,12 +161,27 @@ function Dashboard() {
     updatePoint(pointId, { icon_path: uploadRes.data.path });
   };
 
+  useEffect(() => { 
+    loadSlides(); 
+    api.get('/settings').then(res => setSettings(res.data || {}));
+  }, []);
+
   return (
-    <div className="p-8 pb-20">
+    <div className="p-8 pb-20 relative">
+      {saveStatus && (
+        <div className={`fixed top-4 right-4 z-[9999] px-6 py-3 rounded-lg shadow-2xl flex items-center space-x-3 border ${saveStatus.type === 'error' ? 'bg-red-900 border-red-500 text-white' : 'bg-green-900 border-green-500 text-white'}`}>
+          <div className={`w-2 h-2 rounded-full ${saveStatus.type === 'error' ? 'bg-red-400' : 'bg-green-400'} animate-pulse`}></div>
+          <span className="font-bold">{saveStatus.msg}</span>
+        </div>
+      )}
       <div className="flex justify-between items-center mb-8">
         <div>
-          <h2 className="text-3xl font-bold">Manage 12-Point System</h2>
-          <p className="text-gray-400 text-sm mt-1">Add or edit your text points below.</p>
+          <h2 className="text-3xl font-bold">Manage 12-Point System 
+            <span className="ml-4 text-sm font-normal text-gray-500 bg-gray-900 px-3 py-1 rounded-full border border-gray-800">
+              Total Points: {slides.reduce((acc, s) => acc + s.instructions.length, 0)} / 12
+            </span>
+          </h2>
+          <p className="text-gray-400 text-sm mt-1">Add or edit your text points below. Your system is optimized for up to 12 instructions.</p>
         </div>
         <button onClick={addSlide} className="bg-green-600 px-4 py-2 rounded font-bold text-sm">+ Add Slide Block</button>
       </div>
@@ -262,7 +311,14 @@ function Dashboard() {
           <div key={s.id} className="bg-gray-800 rounded-lg shadow-xl overflow-hidden border border-gray-700">
             <div className="bg-gray-900 p-4 flex justify-between items-center border-b border-gray-700">
               <h3 className="font-bold text-lg text-green-400">Layer {idx + 1}</h3>
-              <div className="space-x-4">
+              <div className="space-x-4 flex items-center">
+                 <button onClick={async () => {
+                   for(let inst of s.instructions) { await api.put(`/instructions/${inst.id}`, inst); }
+                   showStatus(`All points in Layer ${idx+1} saved!`);
+                   loadSlides();
+                 }} className="bg-emerald-600 hover:bg-emerald-500 text-white text-xs px-3 py-1 rounded font-bold flex items-center">
+                   <Save size={14} className="mr-1"/> Save All
+                 </button>
                  <button onClick={() => addPoint(s.id)} className="text-blue-400 hover:text-blue-300 text-sm font-bold">+ Add Data Point</button>
                  <button onClick={() => deleteSlide(s.id)} className="text-red-400 hover:text-red-300 text-sm">Delete Block</button>
               </div>
@@ -273,12 +329,15 @@ function Dashboard() {
                 <div key={inst.id} className="bg-gray-700 rounded border border-gray-600 flex flex-col h-full">
                   
                   {/* Point Content */}
-                  <div className="p-4 flex-1">
+                  <div className="p-4 flex-1 flex flex-col">
                     <textarea 
-                      className="w-full bg-gray-900 border border-gray-600 block text-white p-2 rounded"
+                      className="w-full bg-gray-900 border border-gray-600 block text-white p-2 rounded mb-3 flex-1"
                       rows="3" dir="rtl" value={inst.text} 
-                      onChange={e => updatePoint(inst.id, { text: e.target.value })}
+                      onChange={e => handleLocalText(s.id, inst.id, e.target.value)}
                     />
+                    <button onClick={() => savePoint(inst.id)} className="w-full bg-blue-600 hover:bg-blue-500 text-white font-bold py-2 rounded text-sm flex items-center justify-center transition-colors">
+                      <Save size={16} className="mr-2" /> Save Changes
+                    </button>
                   </div>
 
                   {/* Icon & Footer */}
