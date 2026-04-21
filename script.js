@@ -400,7 +400,7 @@ class APIFetcher {
 
     static async loadSlides() {
         try {
-            const res = await fetch('${APIFetcher.BASE_URL}/api/slides');
+            const res = await fetch(`${APIFetcher.BASE_URL}/api/slides`);
             const slides = await res.json();
             
             if(slides.length === 0) return; // fallback to hardcoded if no DB slides
@@ -460,7 +460,7 @@ class APIFetcher {
 
                     const iconDiv = document.createElement('div');
                     iconDiv.className = 'instruction-icon';
-                    iconDiv.innerHTML = `<img src="${inst.icon_path ? '${APIFetcher.BASE_URL}' + inst.icon_path : 'images/shoe_styles.png'}" alt="Icon" loading="lazy">`;
+                    iconDiv.innerHTML = `<img src="${inst.icon_path ? APIFetcher.BASE_URL + inst.icon_path : 'images/shoe_styles.png'}" alt="Icon" loading="lazy">`;
 
                     card.appendChild(iconDiv);
                     card.appendChild(pContainer);
@@ -489,7 +489,7 @@ class APIFetcher {
      */
     static async loadNotesBoard() {
         try {
-            const res = await fetch('${APIFetcher.BASE_URL}/api/notes');
+            const res = await fetch(`${APIFetcher.BASE_URL}/api/notes`);
             const notes = await res.json();
             
             const wrapper = document.querySelector('.carousel-wrapper');
@@ -552,7 +552,7 @@ class APIFetcher {
 
                 if (note.type === 'image' && note.image_path) {
                     const imgEl = document.createElement('img');
-                    imgEl.src = '${APIFetcher.BASE_URL}' + note.image_path;
+                    imgEl.src = APIFetcher.BASE_URL + note.image_path;
                     imgEl.style.cssText = 'width: 100%; max-height: 50vh; object-fit: contain; border-radius: 15px; margin-bottom: 20px;';
                     scroller.appendChild(imgEl);
                 }
