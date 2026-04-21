@@ -5,6 +5,7 @@ import tailwindcss from '@tailwindcss/vite'
 // https://vitejs.dev/config/
 export default defineConfig({
   plugins: [react(), tailwindcss()],
+  build: { outDir: '../admin_out', emptyOutDir: true },
   server: {
     port: 3000,
     proxy: {
