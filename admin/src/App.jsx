@@ -86,7 +86,15 @@ function Dashboard() {
     setTimeout(() => setSaveStatus(null), 3000);
   };
 
-  const loadSlides = () => api.get('/slides').then(res => setSlides(res.data));
+  const loadSlides = async () => {
+    try {
+      const res = await api.get('/slides');
+      setSlides(res.data);
+    } catch (err) {
+      showStatus('Failed to load slides', 'error');
+    }
+  };
+
   const saveMasterStyle = async () => {
     try {
       await api.put('/settings', settings);
@@ -105,7 +113,7 @@ function Dashboard() {
         instructions: [],
         is_active: 1, bg_color: '', font_family: '', text_color: '' 
       };
-      setSlides([...slides, newSlide]);
+      setSlides(prev => [...prev, newSlide]);
       showStatus('New slide layer added');
     } catch (err) {
       showStatus('Failed to add slide', 'error');
@@ -113,10 +121,13 @@ function Dashboard() {
   };
 
   const deleteSlide = async (id) => {
-    if(confirm('Delete slide block? This will remove all points inside it.')) { 
+    if(!confirm('Delete slide block? This will remove all points inside it.')) return;
+    try {
       await api.delete(`/slides/${id}`); 
-      loadSlides(); 
+      setSlides(prev => prev.filter(s => s.id !== id));
       showStatus('Slide block deleted');
+    } catch (err) {
+      showStatus('Failed to delete slide', 'error');
     }
   };
 
@@ -125,7 +136,7 @@ function Dashboard() {
       const text = 'نیو پوائنٹ تحریر کریں';
       const res = await api.post('/instructions', { slide_id: slideId, text, icon_path: '', icon_position: 'left' });
       const newPoint = { 
-        id: res.data.id || Date.now(), // Fallback if backend doesn't return ID immediately
+        id: res.data.id, 
         slide_id: slideId, 
         text, icon_path: '', icon_position: 'left' 
       };
@@ -142,61 +153,51 @@ function Dashboard() {
   };
 
   const handleLocalText = (sId, iId, text) => {
-    setSlides(slides => slides.map(s => s.id === sId ? {
+    setSlides(prev => prev.map(s => s.id === sId ? {
       ...s,
       instructions: s.instructions.map(i => i.id === iId ? {...i, text} : i)
     } : s));
   };
 
-  const savePoint = async (iId) => {
-    let pointToUpdate = null;
-    for(let s of slides) {
-        let found = s.instructions.find(i => i.id === iId);
-        if(found) pointToUpdate = found;
-    }
-    if(!pointToUpdate) return;
-
+  const savePoint = async (point) => {
     try {
-      await api.put(`/instructions/${iId}`, pointToUpdate);
+      await api.put(`/instructions/${point.id}`, point);
       showStatus('Point saved successfully!');
-      // DO NOT call loadSlides() here to avoid overwriting other unsaved edits
     } catch (err) {
       showStatus('Failed to save point', 'error');
     }
   };
 
-  const updatePoint = async (pointId, updates, shouldReload = true) => {
-    let pointToUpdate = null;
-    for(let s of slides) {
-        let found = s.instructions.find(i => i.id === pointId);
-        if(found) pointToUpdate = found;
-    }
-    if(!pointToUpdate) return;
-
-    const merged = { ...pointToUpdate, ...updates };
-    
-    // Update local state first
-    setSlides(prev => prev.map(s => ({
-      ...s,
-      instructions: s.instructions.map(i => i.id === pointId ? merged : i)
-    })));
-
-    try {
-      await api.put(`/instructions/${pointId}`, merged);
-      if(shouldReload) loadSlides();
-    } catch (err) {
-      showStatus('Auto-sync failed. Please save manually.', 'error');
-    }
+  const updatePoint = async (pointId, updates) => {
+    setSlides(prev => {
+      const newSlides = prev.map(s => ({
+        ...s,
+        instructions: s.instructions.map(i => i.id === pointId ? { ...i, ...updates } : i)
+      }));
+      
+      // Auto-sync specific point to server
+      const point = newSlides.flatMap(s => s.instructions).find(i => i.id === pointId);
+      if (point) {
+        api.put(`/instructions/${pointId}`, point).catch(() => {
+          showStatus('Auto-sync failed. Please save manually.', 'error');
+        });
+      }
+      
+      return newSlides;
+    });
   };
 
   const deletePoint = async (id) => {
-    if(confirm('Delete point?')) { 
+    if(!confirm('Delete point?')) return;
+    try {
       await api.delete(`/instructions/${id}`); 
       setSlides(prev => prev.map(s => ({
         ...s,
         instructions: s.instructions.filter(i => i.id !== id)
       })));
       showStatus('Point deleted');
+    } catch (err) {
+      showStatus('Delete failed', 'error');
     }
   };
 
@@ -208,9 +209,7 @@ function Dashboard() {
     try {
       const uploadRes = await api.post('/upload', formData, { headers: { 'Content-Type': 'multipart/form-data' } });
       const newPath = uploadRes.data.path;
-      
-      // Update locally and on server without full reload
-      updatePoint(pointId, { icon_path: newPath }, false);
+      updatePoint(pointId, { icon_path: newPath });
       showStatus('Icon changed successfully');
     } catch (err) {
       showStatus('Image upload failed', 'error');
@@ -393,7 +392,7 @@ function Dashboard() {
                       rows="3" dir="rtl" value={inst.text} 
                       onChange={e => handleLocalText(s.id, inst.id, e.target.value)}
                     />
-                    <button onClick={() => savePoint(inst.id)} className="w-full bg-blue-600 hover:bg-blue-500 text-white font-bold py-2 rounded text-sm flex items-center justify-center transition-colors">
+                    <button onClick={() => savePoint(inst)} className="w-full bg-blue-600 hover:bg-blue-500 text-white font-bold py-2 rounded text-sm flex items-center justify-center transition-colors">
                       <Save size={16} className="mr-2" /> Save Changes
                     </button>
                   </div>
