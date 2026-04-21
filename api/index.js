@@ -11,8 +11,9 @@ const app = express();
 app.use(cors());
 app.use(express.json());
 
-// Make uploads dir if not exists
-const uploadsDir = path.join(__dirname, 'public/images');
+// Make uploads dir if not exists. On Vercel, use /tmp
+const isVercel = process.env.VERCEL === '1';
+const uploadsDir = isVercel ? '/tmp/images' : path.join(__dirname, 'public/images');
 if (!fs.existsSync(uploadsDir)){
     fs.mkdirSync(uploadsDir, { recursive: true });
 }
@@ -26,7 +27,8 @@ const rootWebDir = path.join(__dirname, '../');
 app.use('/', express.static(rootWebDir));
 
 
-const db = new Database('database.sqlite');
+const dbPath = isVercel ? '/tmp/database.sqlite' : 'database.sqlite';
+const db = new Database(dbPath);
 db.pragma('journal_mode = WAL');
 
 // Initialize DB schema
