@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { BrowserRouter as Router, Routes, Route, Link, useNavigate, Navigate } from 'react-router-dom';
 import axios from 'axios';
-import { Settings, Image as ImageIcon, Layout, FileText, Power, User, Upload, Palette, Type, AlignLeft, AlignCenter, AlignRight, Bold, Italic, Underline, ExternalLink, StickyNote, Plus, Trash2 } from 'lucide-react';
+import { Settings, Image as ImageIcon, Layout, FileText, Power, User, Upload, Palette, Type, AlignLeft, AlignCenter, AlignRight, Bold, Italic, Underline, ExternalLink, StickyNote, Plus, Trash2, Save } from 'lucide-react';
 
 const api = axios.create({ baseURL: '/api' });
 
@@ -462,6 +462,22 @@ function NotesBoard() {
                 {z}x
               </button>
             ))}
+          </div>
+
+          {/* Divider */}
+          <div className="w-px h-5 mx-1" style={{backgroundColor: theme.border}}></div>
+
+          {/* Font Size Input */}
+          <div className="flex items-center space-x-1 bg-black bg-opacity-20 rounded-md px-2 py-1" style={{ border: `1px solid ${theme.border}` }}>
+            <span className="text-[10px] opacity-60">Size</span>
+            <input 
+              type="number" 
+              className="w-12 bg-transparent text-xs outline-none text-center"
+              style={{ color: note.text_color || theme.text }}
+              value={note.font_size || 18}
+              onChange={e => updateNote(note.id, { font_size: e.target.value })}
+            />
+            <span className="text-[10px] opacity-40">px</span>
           </div>
 
           {/* Divider */}

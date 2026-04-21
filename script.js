@@ -477,7 +477,9 @@ class APIFetcher {
 
     /**
      * Notes Board Mode — replaces the entire carousel with notes content.
-     * Cards are resizable with fixed height. Long text auto-scrolls smoothly.
+    /**
+     * Notes Board Mode — Simplified vertical layout (as requested).
+     * Cards are 100% width. Long text auto-scrolls smoothly.
      */
     static async loadNotesBoard() {
         try {
@@ -494,81 +496,61 @@ class APIFetcher {
                 return;
             }
 
-            // Calculate available height for cards
-            const wrapperHeight = wrapper.parentElement ? wrapper.parentElement.clientHeight : window.innerHeight * 0.75;
-            const gap = 20;
-            
-            // If 1 note: full height. If 2+: split vertically with gaps.
-            const rows = Math.min(notes.length, 3); // max 3 visible rows
-            const cardHeight = Math.floor((wrapperHeight - (gap * (rows + 1))) / rows);
-
             wrapper.style.cssText = `
-                display: flex; flex-wrap: wrap; gap: ${gap}px;
-                padding: ${gap}px; height: 100%; overflow: hidden;
-                align-content: flex-start; direction: rtl;
+                display: flex; flex-direction: column; gap: 30px;
+                padding: 40px; height: 100%; overflow-y: auto; direction: rtl;
             `;
             
             const scrollers = [];
             
             notes.forEach((note, idx) => {
-                // ── Card with FIXED height ──
                 const noteCard = document.createElement('div');
                 noteCard.className = 'note-card-frontend';
-                const finalWidth = note.width && note.width > 0 ? `${note.width}px` : (notes.length === 1 ? '100%' : notes.length === 2 ? '100%' : `calc(50% - ${gap}px)`);
-                const finalHeight = note.height && note.height > 0 ? `${note.height}px` : `${cardHeight}px`;
+                // Prioritize saved height, but default to a large legible height for signage
+                const finalHeight = note.height && note.height > 0 ? `${note.height}px` : '75vh';
                 
                 noteCard.style.cssText = `
-                    width: ${finalWidth};
+                    width: 100%;
                     height: ${finalHeight};
                     background: ${note.bg_color || 'rgba(255,254,245,0.95)'};
                     color: ${note.text_color || '#2d2a1e'};
                     font-family: ${note.font_family || 'var(--font-urdu)'};
-                    font-size: ${note.font_size ? note.font_size + 'px' : 'clamp(1rem, 3.5vw, 42px)'};
-                    line-height: 2; text-align: right; direction: rtl;
+                    font-size: ${note.font_size ? note.font_size + 'px' : 'clamp(1.5rem, 4.5vw, 60px)'};
+                    line-height: 1.8; text-align: right; direction: rtl;
                     animation-delay: ${idx * 0.15}s;
                 `;
                 
-                // ── Title bar (pinned, does not scroll) ──
                 let titleBarH = 0;
                 if (note.title) {
                     const titleBar = document.createElement('div');
                     titleBar.style.cssText = `
-                        padding: 12px 5vw; font-size: 1.2em; font-weight: 700;
+                        padding: 20px 5vw; font-size: 1.3em; font-weight: 700;
                         border-bottom: 2px solid rgba(212,168,67,0.3);
                         background: inherit; position: relative; z-index: 2;
-                        white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
                     `;
                     titleBar.textContent = note.title;
                     noteCard.appendChild(titleBar);
-                    titleBarH = 50; // approximate
+                    titleBarH = 70;
                 }
                 
-                // ── Viewport (clips overflow) ──
                 const viewport = document.createElement('div');
                 viewport.className = 'note-viewport';
                 viewport.style.cssText = `
                     height: calc(100% - ${titleBarH}px);
                     overflow: hidden; position: relative;
-                    padding: 2vh 5vw;
+                    padding: 3vh 6vw;
                 `;
 
-                // ── Scroller (the content that slides up) ──
                 const scroller = document.createElement('div');
                 scroller.className = 'note-scroller';
 
-                // Image
                 if (note.type === 'image' && note.image_path) {
                     const imgEl = document.createElement('img');
                     imgEl.src = 'http://localhost:3001' + note.image_path;
-                    imgEl.alt = note.title || 'Note Image';
-                    imgEl.style.cssText = `
-                        width: 100%; max-height: 35vh; object-fit: contain;
-                        border-radius: 12px; margin-bottom: 1em;
-                    `;
+                    imgEl.style.cssText = 'width: 100%; max-height: 50vh; object-fit: contain; border-radius: 15px; margin-bottom: 20px;';
                     scroller.appendChild(imgEl);
                 }
 
-                // Content text
                 if (note.content) {
                     const contentEl = document.createElement('div');
                     contentEl.innerHTML = note.content.replace(/\n/g, '<br>');
@@ -578,46 +560,30 @@ class APIFetcher {
                 viewport.appendChild(scroller);
                 noteCard.appendChild(viewport);
                 wrapper.appendChild(noteCard);
-                
                 scrollers.push({ viewport, scroller, noteCard });
             });
             
-            // ── Post-render: detect overflow & configure auto-scroll ──
+            // Auto-scroll setup
             requestAnimationFrame(() => {
                 setTimeout(() => {
-                    scrollers.forEach(({ viewport, scroller, noteCard }) => {
+                    scrollers.forEach(({ viewport, scroller }) => {
                         const setupScroll = () => {
                             const viewH = viewport.clientHeight;
                             const contentH = scroller.scrollHeight;
-                            
-                            if (contentH > viewH + 10) {
-                                // Content overflows → enable marquee
+                            if (contentH > viewH + 20) {
                                 const overflowPx = contentH - viewH;
                                 scroller.style.setProperty('--scroll-distance', `-${overflowPx}px`);
-                                // Speed: ~40px per second (adjust for readability)
-                                const duration = Math.max(8, overflowPx / 40);
-                                scroller.style.setProperty('--scroll-speed', `${duration}s`);
+                                scroller.style.setProperty('--scroll-speed', `${Math.max(10, overflowPx / 35)}s`);
                                 scroller.style.animationName = 'noteAutoScroll';
                             } else {
-                                // Content fits → no animation needed
                                 scroller.style.animationName = 'none';
                             }
                         };
-                        
                         setupScroll();
-                        
-                        // Re-check on resize (user drags the card handle)
-                        if (window.ResizeObserver) {
-                            new ResizeObserver(() => {
-                                setupScroll();
-                            }).observe(noteCard);
-                        }
                     });
-                }, 300);
+                }, 400);
             });
-        } catch(e) {
-            console.log('Notes Board error', e);
-        }
+        } catch(e) { console.log('Notes Board error', e); }
     }
 }
 
