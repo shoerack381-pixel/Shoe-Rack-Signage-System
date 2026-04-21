@@ -319,6 +319,7 @@ class ImageRefresher {
     refreshAll() {
         const timestamp = Date.now();
         document.querySelectorAll('.instruction-icon img').forEach(img => {
+            if (img.src.startsWith('data:')) return; // Skip base64
             const baseSrc = img.src.split('?')[0];
             img.src = `${baseSrc}?v=${timestamp}`;
         });
