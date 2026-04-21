@@ -1,0 +1,100 @@
+<!DOCTYPE html>
+<html lang="ur" dir="rtl">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="جوتوں کی حفاظت کے لیے ہدایات - مسجد شو ریک سسٹم">
+    <title>ہدایات برائے شرکائے جوتا حفاظت</title>
+    <link rel="stylesheet" href="styles.css?v=responsive_fix_v2">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link
+        href="https://fonts.googleapis.com/css2?family=Noto+Nastaliq+Urdu:wght@400;700&family=Amiri:wght@400;700&display=swap"
+        rel="stylesheet">
+</head>
+
+<body>
+
+    <!-- Loading Overlay -->
+    <div id="loadingOverlay" class="loading-overlay">
+        <div class="loading-spinner">
+            <div class="crescent"></div>
+            <div class="loading-text">ہدایات لوڈ ہو رہی ہیں...</div>
+        </div>
+    </div>
+
+    <div class="slider-container">
+
+        <!-- ===== DIGITAL CLOCK HEADER ===== -->
+        <header class="clock-header" id="clockHeader">
+            <div class="clock-container">
+                <div class="clock-segment">
+                    <span class="clock-value" id="clockHours">12</span>
+                    <span class="clock-label">HOURS</span>
+                </div>
+                <span class="clock-separator">:</span>
+                <div class="clock-segment">
+                    <span class="clock-value" id="clockMinutes">00</span>
+                    <span class="clock-label">MINUTES</span>
+                </div>
+                <span class="clock-separator">:</span>
+                <div class="clock-segment">
+                    <span class="clock-value clock-seconds" id="clockSeconds">00</span>
+                    <span class="clock-label">SECONDS</span>
+                </div>
+                <div class="clock-ampm" id="clockAmPm">AM</div>
+            </div>
+            <p class="heading-subtitle" id="headerSubtitle">جوتا جمع کروانے والے بھائیوں کے لیے اہم ہدایات</p>
+        </header>
+
+        <!-- ===== CAROUSEL ===== -->
+        <div class="carousel-wrapper" id="carouselWrapper">
+
+            <!-- Slide Badge -->
+            <div class="slide-badge">1 / 2</div>
+
+            <!-- Pause Indicator -->
+            <div class="pause-indicator">⏸ Paused</div>
+
+            <!-- Progress Bar -->
+            <div class="progress-bar" id="progressBar"></div>
+
+            <!-- Navigation Arrows -->
+            <button class="nav-arrow prev" id="prevBtn" aria-label="Previous Slide">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"
+                    stroke-linejoin="round">
+                    <polyline points="9 18 15 12 9 6"></polyline>
+                </svg>
+            </button>
+            <button class="nav-arrow next" id="nextBtn" aria-label="Next Slide">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"
+                    stroke-linejoin="round">
+                    <polyline points="15 18 9 12 15 6"></polyline>
+                </svg>
+            </button>
+
+            <!-- Carousel Track -->
+            <div class="carousel-track" id="carouselTrack">
+
+                <!-- Dynamic slides will be injected here via APIFetcher in script.js -->
+
+            </div> <!-- /carousel-track -->
+        </div> <!-- /carousel-wrapper -->
+
+        <!-- ===== NAVIGATION DOTS ===== -->
+        <nav class="nav-dots" aria-label="Slide Navigation">
+            <!-- Dynamic nav dots will be injected here -->
+        </nav>
+
+        <!-- ===== FOOTER ===== -->
+        <footer class="slider-footer">
+            <span class="green-text">جزاک اللہ خیراً</span> — آپ کے تعاون کا شکریہ
+        </footer>
+
+    </div> <!-- /slider-container -->
+
+    <script src="script.js"></script>
+</body>
+
+</html>
