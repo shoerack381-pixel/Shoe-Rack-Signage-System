@@ -460,7 +460,12 @@ class APIFetcher {
 
                     const iconDiv = document.createElement('div');
                     iconDiv.className = 'instruction-icon';
-                    iconDiv.innerHTML = `<img src="${inst.icon_path ? APIFetcher.BASE_URL + inst.icon_path : 'images/shoe_styles.png'}" alt="Icon" loading="lazy">`;
+                    const iconPath = inst.icon_path;
+                    const finalIconSrc = (iconPath && (iconPath.startsWith('data:') || iconPath.startsWith('http'))) 
+                        ? iconPath 
+                        : (iconPath ? APIFetcher.BASE_URL + iconPath : 'images/shoe_styles.png');
+
+                    iconDiv.innerHTML = `<img src="${finalIconSrc}" alt="Icon" loading="lazy">`;
 
                     card.appendChild(iconDiv);
                     card.appendChild(pContainer);
