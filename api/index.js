@@ -235,9 +235,9 @@ app.delete('/api/slides/:id', authenticateToken, (req, res) => {
 // Instructions (inside slides)
 app.post('/api/instructions', authenticateToken, (req, res) => {
     const { slide_id, text, icon_path, icon_position } = req.body;
-    db.prepare('INSERT INTO instructions (slide_id, text, icon_path, icon_position) VALUES (?, ?, ?, ?)')
+    const result = db.prepare('INSERT INTO instructions (slide_id, text, icon_path, icon_position) VALUES (?, ?, ?, ?)')
       .run(slide_id, text, icon_path, icon_position || 'left');
-    res.json({ success: true });
+    res.json({ id: result.lastInsertRowid, success: true });
 });
 
 app.put('/api/instructions/:id', authenticateToken, (req, res) => {
@@ -323,6 +323,10 @@ const upload = multer({ storage: storage });
 
 app.post('/api/upload', authenticateToken, upload.single('image'), (req, res) => {
     res.json({ path: '/images/' + req.file.filename });
+});
+
+app.get('/api/backup-db', (req, res) => {
+    res.download(dbPath, 'database_backup.sqlite');
 });
 
 const PORT = process.env.PORT || 3001;

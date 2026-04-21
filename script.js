@@ -327,9 +327,9 @@ class ImageRefresher {
 
 class APIFetcher {
     static get BASE_URL() {
-        return (window.location.hostname === 'localhost' || window.location.protocol === 'file:') 
-            ? 'http://localhost:3001' 
-            : '';
+        // Return empty string for production (relative paths) 
+        // Only return localhost if specifically on a dev port that isn't the backend
+        return (window.location.port === '3000') ? 'http://localhost:3001' : '';
     }
 
     static async loadSettings() {
@@ -603,7 +603,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         new DigitalClock();
     } catch(e) { console.error(e); }
     
-    // Check toggle: Notes Board vs 12-Point Slides
+    // Check toggle: Notes Board vs Slider
     const isNotesMode = window.APP_SETTINGS.notes_board_active === 1;
     
     if (isNotesMode) {
@@ -616,7 +616,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         const overlay = document.getElementById('loadingOverlay');
         if (overlay) overlay.style.display = 'none';
     } else {
-        // === NORMAL 12-POINT MODE ===
+        // === DYNAMIC SLIDER MODE ===
         try {
             await APIFetcher.loadSlides();
         } catch(e) { console.error(e); }

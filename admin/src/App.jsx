@@ -58,8 +58,11 @@ function Sidebar({ onLogout }) {
         </Link>
       </nav>
       <div className="p-4 border-t border-gray-800 space-y-2">
-        <a href="http://localhost:3001/" target="_blank" rel="noreferrer" className="flex items-center justify-center w-full bg-blue-600 hover:bg-blue-500 text-white py-2 rounded transition-colors text-sm font-bold">
+        <a href="/" target="_blank" rel="noreferrer" className="flex items-center justify-center w-full bg-blue-600 hover:bg-blue-500 text-white py-2 rounded transition-colors text-sm font-bold">
           <ExternalLink size={16} className="mr-2" /> View Frontend
+        </a>
+        <a href="/api/backup-db" download className="flex items-center justify-center w-full bg-gray-700 hover:bg-gray-600 text-white py-2 rounded transition-colors text-sm font-bold">
+          <Upload size={16} className="mr-2" /> Backup Database
         </a>
         <button onClick={onLogout} className="flex items-center w-full text-red-400 hover:bg-gray-800 px-4 py-2 rounded">
           <Power size={20} className="mr-3" /> Logout
@@ -94,8 +97,19 @@ function Dashboard() {
   };
 
   const addSlide = async () => {
-    await api.post('/slides', { order_index: slides.length });
-    loadSlides();
+    try {
+      const res = await api.post('/slides', { order_index: slides.length });
+      const newSlide = { 
+        id: res.data.id, 
+        order_index: slides.length, 
+        instructions: [],
+        is_active: 1, bg_color: '', font_family: '', text_color: '' 
+      };
+      setSlides([...slides, newSlide]);
+      showStatus('New slide layer added');
+    } catch (err) {
+      showStatus('Failed to add slide', 'error');
+    }
   };
 
   const deleteSlide = async (id) => {
@@ -107,9 +121,24 @@ function Dashboard() {
   };
 
   const addPoint = async (slideId) => {
-    await api.post('/instructions', { slide_id: slideId, text: 'نیو پوائنٹ تحریر کریں', icon_path: '', icon_position: 'left' });
-    loadSlides();
-    showStatus('New point added');
+    try {
+      const text = 'نیو پوائنٹ تحریر کریں';
+      const res = await api.post('/instructions', { slide_id: slideId, text, icon_path: '', icon_position: 'left' });
+      const newPoint = { 
+        id: res.data.id || Date.now(), // Fallback if backend doesn't return ID immediately
+        slide_id: slideId, 
+        text, icon_path: '', icon_position: 'left' 
+      };
+      
+      setSlides(prev => prev.map(s => s.id === slideId ? {
+        ...s,
+        instructions: [...s.instructions, newPoint]
+      } : s));
+      
+      showStatus('New point added');
+    } catch (err) {
+      showStatus('Failed to add point', 'error');
+    }
   };
 
   const handleLocalText = (sId, iId, text) => {
@@ -130,13 +159,13 @@ function Dashboard() {
     try {
       await api.put(`/instructions/${iId}`, pointToUpdate);
       showStatus('Point saved successfully!');
-      loadSlides();
+      // DO NOT call loadSlides() here to avoid overwriting other unsaved edits
     } catch (err) {
       showStatus('Failed to save point', 'error');
     }
   };
 
-  const updatePoint = async (pointId, updates) => {
+  const updatePoint = async (pointId, updates, shouldReload = true) => {
     let pointToUpdate = null;
     for(let s of slides) {
         let found = s.instructions.find(i => i.id === pointId);
@@ -144,12 +173,31 @@ function Dashboard() {
     }
     if(!pointToUpdate) return;
 
-    await api.put(`/instructions/${pointId}`, { ...pointToUpdate, ...updates });
-    loadSlides();
+    const merged = { ...pointToUpdate, ...updates };
+    
+    // Update local state first
+    setSlides(prev => prev.map(s => ({
+      ...s,
+      instructions: s.instructions.map(i => i.id === pointId ? merged : i)
+    })));
+
+    try {
+      await api.put(`/instructions/${pointId}`, merged);
+      if(shouldReload) loadSlides();
+    } catch (err) {
+      showStatus('Auto-sync failed. Please save manually.', 'error');
+    }
   };
 
   const deletePoint = async (id) => {
-    if(confirm('Delete point?')) { await api.delete(`/instructions/${id}`); loadSlides(); }
+    if(confirm('Delete point?')) { 
+      await api.delete(`/instructions/${id}`); 
+      setSlides(prev => prev.map(s => ({
+        ...s,
+        instructions: s.instructions.filter(i => i.id !== id)
+      })));
+      showStatus('Point deleted');
+    }
   };
 
   const handleIconUpload = async (e, pointId) => {
@@ -157,8 +205,16 @@ function Dashboard() {
     if(!file) return;
     const formData = new FormData();
     formData.append('image', file);
-    const uploadRes = await api.post('/upload', formData, { headers: { 'Content-Type': 'multipart/form-data' } });
-    updatePoint(pointId, { icon_path: uploadRes.data.path });
+    try {
+      const uploadRes = await api.post('/upload', formData, { headers: { 'Content-Type': 'multipart/form-data' } });
+      const newPath = uploadRes.data.path;
+      
+      // Update locally and on server without full reload
+      updatePoint(pointId, { icon_path: newPath }, false);
+      showStatus('Icon changed successfully');
+    } catch (err) {
+      showStatus('Image upload failed', 'error');
+    }
   };
 
   useEffect(() => { 
@@ -176,14 +232,13 @@ function Dashboard() {
       )}
       <div className="flex justify-between items-center mb-8">
         <div>
-          <h2 className="text-3xl font-bold">Manage 12-Point System 
-            <span className="ml-4 text-sm font-normal text-gray-500 bg-gray-900 px-3 py-1 rounded-full border border-gray-800">
-              Total Points: {slides.reduce((acc, s) => acc + s.instructions.length, 0)} / 12
-            </span>
-          </h2>
-          <p className="text-gray-400 text-sm mt-1">Add or edit your text points below. Your system is optimized for up to 12 instructions.</p>
+          <h2 className="text-3xl font-bold">Manage Dynamic Slider System</h2>
+          <p className="text-gray-400 text-sm mt-1">Add or edit your instruction points. Unlimited slides and points supported.</p>
         </div>
-        <button onClick={addSlide} className="bg-green-600 px-4 py-2 rounded font-bold text-sm">+ Add Slide Block</button>
+        <div className="flex space-x-4">
+          <button onClick={loadSlides} className="bg-gray-700 hover:bg-gray-600 px-4 py-2 rounded font-bold text-sm">↻ Reload Data</button>
+          <button onClick={addSlide} className="bg-green-600 px-4 py-2 rounded font-bold text-sm">+ Add Slide Block</button>
+        </div>
       </div>
 
       {/* MASTER POINT STYLE CONTROLS */}
@@ -313,11 +368,14 @@ function Dashboard() {
               <h3 className="font-bold text-lg text-green-400">Layer {idx + 1}</h3>
               <div className="space-x-4 flex items-center">
                  <button onClick={async () => {
-                   for(let inst of s.instructions) { await api.put(`/instructions/${inst.id}`, inst); }
-                   showStatus(`All points in Layer ${idx+1} saved!`);
-                   loadSlides();
+                   try {
+                     for(let inst of s.instructions) { await api.put(`/instructions/${inst.id}`, inst); }
+                     showStatus(`All points in Layer ${idx+1} updated successfully!`);
+                   } catch (err) {
+                     showStatus('Error saving block', 'error');
+                   }
                  }} className="bg-emerald-600 hover:bg-emerald-500 text-white text-xs px-3 py-1 rounded font-bold flex items-center">
-                   <Save size={14} className="mr-1"/> Save All
+                   <Save size={14} className="mr-1"/> Save Block
                  </button>
                  <button onClick={() => addPoint(s.id)} className="text-blue-400 hover:text-blue-300 text-sm font-bold">+ Add Data Point</button>
                  <button onClick={() => deleteSlide(s.id)} className="text-red-400 hover:text-red-300 text-sm">Delete Block</button>
@@ -344,7 +402,7 @@ function Dashboard() {
                   <div className="p-3 bg-gray-800 border-t border-gray-600 flex justify-between items-center">
                     <div className="flex items-center space-x-2">
                        {inst.icon_path ? (
-                         <img src={`http://localhost:3001${inst.icon_path}`} className="w-8 h-8 rounded border border-gray-600 bg-gray-900 object-contain" alt="" />
+                         <img src={`${inst.icon_path.startsWith('http') ? '' : window.location.origin}${inst.icon_path}`} className="w-8 h-8 rounded border border-gray-600 bg-gray-900 object-contain" alt="" />
                        ) : <div className="w-8 h-8 rounded border border-gray-600 bg-gray-900 flex items-center justify-center"><ImageIcon size={14} className="text-gray-500"/></div>}
                        <label className="text-xs text-blue-400 hover:text-blue-300 cursor-pointer font-bold">
                          Change Icon <input type="file" className="hidden" onChange={e => handleIconUpload(e, inst.id)} />
