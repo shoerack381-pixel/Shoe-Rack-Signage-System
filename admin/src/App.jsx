@@ -719,9 +719,9 @@ function ThemeSettings() {
 
 export default function App() {
   const [token, setToken] = useState(localStorage.getItem('token'));
-  if (!token) return <Router><Routes><Route path="*" element={<Login setToken={setToken} />} /></Routes></Router>;
+  if (!token) return <Router basename="/admin"><Routes><Route path="*" element={<Login setToken={setToken} />} /></Routes></Router>;
   return (
-    <Router>
+    <Router basename="/admin">
       <div className="flex h-screen bg-gray-950 text-white overflow-hidden">
         <Sidebar onLogout={() => { localStorage.removeItem('token'); setToken(null); }} />
         <div className="flex-1 overflow-auto"><Routes>
