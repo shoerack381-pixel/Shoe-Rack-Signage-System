@@ -235,6 +235,12 @@ function Dashboard() {
           <p className="text-gray-400 text-sm mt-1">Add or edit your instruction points. Unlimited slides and points supported.</p>
         </div>
         <div className="flex space-x-4">
+          <button onClick={async () => {
+            if(confirm('Restore 12 default points? This will only work if you have no slides.')) {
+              await api.post('/slides/seed');
+              loadSlides();
+            }
+          }} className="bg-amber-600 hover:bg-amber-500 px-4 py-2 rounded font-bold text-sm">✨ Restore Defaults</button>
           <button onClick={loadSlides} className="bg-gray-700 hover:bg-gray-600 px-4 py-2 rounded font-bold text-sm">↻ Reload Data</button>
           <button onClick={addSlide} className="bg-green-600 px-4 py-2 rounded font-bold text-sm">+ Add Slide Block</button>
         </div>

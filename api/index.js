@@ -131,7 +131,30 @@ if (!adminCheck) {
 // Insert default settings
 const settingsCheck = db.prepare('SELECT * FROM settings WHERE id = 1').get();
 if (!settingsCheck) {
-    db.prepare("INSERT INTO settings (id, header_color, theme) VALUES (1, 'green', 'light')").run();
+    db.prepare("INSERT INTO settings (id, header_color, theme, header_text) VALUES (1, 'green', 'light', 'جوتا جمع کروانے والے بھائیوں کے لیے اہم ہدایات')").run();
+}
+
+// Seed default points if empty
+const slideCount = db.prepare('SELECT COUNT(*) as count FROM slides').get().count;
+if (slideCount === 0) {
+    const slideResult = db.prepare('INSERT INTO slides (order_index) VALUES (?)').run(0);
+    const slideId = slideResult.lastInsertRowid;
+    const defaultPoints = [
+        'برائے مہربانی اپنا جوتا خود سنبھال کر رکھیں۔',
+        'جوتوں کے ساتھ کوئی بھی قیمتی چیز نہ رکھیں بلکہ خود سنبھال کر رکھیں۔',
+        'سامان کے غائب ہونے کی صورت میں انتظامیہ ذمہ دار نہ ہوگی۔',
+        'جوتے جوڑوں کی شکل میں ترتیب سے رکھیں۔',
+        'رش سے بچنے کے لیے قطار بنائیں۔',
+        'ٹوکن یا پرچی سنبھال کر رکھیں۔',
+        'واپسی پر ٹوکن دکھانا لازمی ہے۔',
+        'جوتا وصول کرتے وقت اچھی طرح تسلی فرما لیں۔',
+        'انتظامیہ کی ہدایات پر عمل کریں۔',
+        'ٹوکن گم ہونے کی صورت میں متبادل ثبوت فراہم کرنا ہوگا۔',
+        '24 گھنٹے کے بعد جوتا ہماری ذمہ داری نہ ہوگی۔',
+        'لوگوں کے ساتھ بھرپور تعاون کریں۔'
+    ];
+    const insertPoint = db.prepare('INSERT INTO instructions (slide_id, text, icon_path) VALUES (?, ?, ?)');
+    defaultPoints.forEach(p => insertPoint.run(slideId, p, ''));
 }
 
 // Authentication Middleware
@@ -218,6 +241,42 @@ app.get('/api/slides', (req, res) => {
 app.post('/api/slides', authenticateToken, (req, res) => {
     const result = db.prepare('INSERT INTO slides (order_index) VALUES (?)').run(req.body.order_index || 0);
     res.json({ id: result.lastInsertRowid });
+});
+
+app.post('/api/slides/seed', authenticateToken, (req, res) => {
+    let slideId;
+    const firstSlide = db.prepare('SELECT * FROM slides ORDER BY order_index LIMIT 1').get();
+    
+    if (!firstSlide) {
+        const slideResult = db.prepare('INSERT INTO slides (order_index) VALUES (?)').run(0);
+        slideId = slideResult.lastInsertRowid;
+    } else {
+        slideId = firstSlide.id;
+    }
+
+    const pointCount = db.prepare('SELECT COUNT(*) as count FROM instructions WHERE slide_id = ?').get(slideId).count;
+    
+    if (pointCount === 0) {
+        const defaultPoints = [
+            'برائے مہربانی اپنا جوتا خود سنبھال کر رکھیں۔',
+            'جوتوں کے ساتھ کوئی بھی قیمتی چیز نہ رکھیں بلکہ خود سنبھال کر رکھیں۔',
+            'سامان کے غائب ہونے کی صورت میں انتظامیہ ذمہ دار نہ ہوگی۔',
+            'جوتے جوڑوں کی شکل میں ترتیب سے رکھیں۔',
+            'رش سے بچنے کے لیے قطار بنائیں۔',
+            'ٹوکن یا پرچی سنبھال کر رکھیں۔',
+            'واپسی پر ٹوکن دکھانا لازمی ہے۔',
+            'جوتا وصول کرتے وقت اچھی طرح تسلی فرما لیں۔',
+            'انتظامیہ کی ہدایات پر عمل کریں۔',
+            'ٹوکن گم ہونے کی صورت میں متبادل ثبوت فراہم کرنا ہوگا۔',
+            '24 گھنٹے کے بعد جوتا ہماری ذمہ داری نہ ہوگی۔',
+            'لوگوں کے ساتھ بھرپور تعاون کریں۔'
+        ];
+        const insertPoint = db.prepare('INSERT INTO instructions (slide_id, text, icon_path) VALUES (?, ?, ?)');
+        defaultPoints.forEach(p => insertPoint.run(slideId, p, ''));
+        res.json({ success: true, message: 'Seeded default points into Layer 1' });
+    } else {
+        res.status(400).json({ error: 'Layer 1 already has points. Cannot seed.' });
+    }
 });
 
 app.put('/api/slides/:id', authenticateToken, (req, res) => {
