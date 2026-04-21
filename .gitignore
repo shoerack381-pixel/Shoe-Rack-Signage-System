@@ -1,0 +1,11 @@
+node_modules/
+.DS_Store
+backend/node_modules/
+admin/node_modules/
+database.sqlite
+backend/database.sqlite
+uploads/
+backend/uploads/
+dist/
+build/
+.vercel
