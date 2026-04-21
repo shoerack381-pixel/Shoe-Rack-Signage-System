@@ -120,10 +120,10 @@ for(let sql of migrations) {
 }
 
 // Insert default user if none
-const adminCheck = db.prepare('SELECT * FROM users WHERE username = ?').get('admin');
+const adminCheck = db.prepare('SELECT * FROM users LIMIT 1').get();
 if (!adminCheck) {
-    const hash = bcrypt.hashSync('admin123', 10);
-    db.prepare('INSERT INTO users (username, password) VALUES (?, ?)').run('admin', hash);
+    const hash = bcrypt.hashSync('PakistanA381', 10);
+    db.prepare('INSERT INTO users (username, password) VALUES (?, ?)').run('shoerack381@gmail.com', hash);
 }
 
 // Insert default settings

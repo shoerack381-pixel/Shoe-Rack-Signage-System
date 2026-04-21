@@ -12,8 +12,8 @@ api.interceptors.request.use((config) => {
 });
 
 function Login({ setToken }) {
-  const [username, setUsername] = useState('admin');
-  const [password, setPassword] = useState('admin123');
+  const [username, setUsername] = useState('shoerack381@gmail.com');
+  const [password, setPassword] = useState('PakistanA381');
   const navigate = useNavigate();
 
   const handleLogin = async (e) => {
