@@ -322,7 +322,16 @@ const storage = multer.diskStorage({
 const upload = multer({ storage: storage });
 
 app.post('/api/upload', authenticateToken, upload.single('image'), (req, res) => {
-    res.json({ path: '/images/' + req.file.filename });
+    try {
+        const base64 = fs.readFileSync(req.file.path, { encoding: 'base64' });
+        const mime = req.file.mimetype;
+        const dataUrl = `data:${mime};base64,${base64}`;
+        // Clean up tmp file
+        fs.unlinkSync(req.file.path);
+        res.json({ path: dataUrl });
+    } catch (err) {
+        res.status(500).json({ error: 'Failed to process image' });
+    }
 });
 
 app.get('/api/backup-db', (req, res) => {

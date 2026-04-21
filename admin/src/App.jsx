@@ -402,7 +402,10 @@ function Dashboard() {
                   <div className="p-3 bg-gray-800 border-t border-gray-600 flex justify-between items-center">
                     <div className="flex items-center space-x-2">
                        {inst.icon_path ? (
-                         <img src={`${inst.icon_path.startsWith('http') ? '' : window.location.origin}${inst.icon_path}`} className="w-8 h-8 rounded border border-gray-600 bg-gray-900 object-contain" alt="" />
+                         <img 
+                           src={inst.icon_path.startsWith('data:') || inst.icon_path.startsWith('http') ? inst.icon_path : `${window.location.origin}${inst.icon_path}`} 
+                           className="w-8 h-8 rounded border border-gray-600 bg-gray-900 object-contain" alt="" 
+                         />
                        ) : <div className="w-8 h-8 rounded border border-gray-600 bg-gray-900 flex items-center justify-center"><ImageIcon size={14} className="text-gray-500"/></div>}
                        <label className="text-xs text-blue-400 hover:text-blue-300 cursor-pointer font-bold">
                          Change Icon <input type="file" className="hidden" onChange={e => handleIconUpload(e, inst.id)} />
